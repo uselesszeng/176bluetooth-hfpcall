@@ -116,15 +116,14 @@ class FloatingCallService : Service(), LifecycleOwner, ViewModelStoreOwner, Save
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
 
-        // Start Foreground Service with Microphone and PhoneCall types on supported versions
+        // Start Foreground Service with Microphone and ConnectedDevice types on supported versions
         try {
             val notification = createNotification()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                var serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    serviceType = serviceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
                 startForeground(NOTIFICATION_ID, notification, serviceType)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }

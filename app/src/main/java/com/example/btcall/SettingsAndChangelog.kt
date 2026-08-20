@@ -16,6 +16,24 @@ data class ChangelogRecord(
 object ChangelogRepository {
     val records = listOf(
         ChangelogRecord(
+            version = "v01.12",
+            versionCode = 112,
+            date = "2026-08-20",
+            title = "Android 14 (API 34+) 前台服务类型与广播安全规范加固",
+            features = listOf(
+                "升级前台服务类型声明为 microphone|connectedDevice，完全遵循 Android 14 严苛的前台服务类型约束",
+                "适配 Android 14 广播导出安全规范，动态注册扫描接收器时显式声明 RECEIVER_NOT_EXPORTED"
+            ),
+            bugFixes = listOf(
+                "修复 Android 14 下启动前台服务时因 phoneCall 权限缺失引发的 SecurityException 致命崩溃",
+                "修复 Android 14+ 下动态注册广播接收器未指定 export 标志导致的 SecurityException 崩溃隐患"
+            ),
+            optimizations = listOf(
+                "将 Manifest 与 FloatingCallService.kt 的前台服务类型完全对齐为 microphone|connectedDevice",
+                "自动同步升级系统版本代码至 112 (v01.12)"
+            )
+        ),
+        ChangelogRecord(
             version = "v01.11",
             versionCode = 111,
             date = "2026-08-20",

@@ -375,7 +375,12 @@ class BluetoothCallEngine(private val context: Context) {
                 addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             }
             try {
-                context.registerReceiver(discoveryReceiver, filter)
+                androidx.core.content.ContextCompat.registerReceiver(
+                    context,
+                    discoveryReceiver,
+                    filter,
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
             } catch (e: Exception) {
                 addSystemLog("ERROR", "SCAN_REG", "注册扫描监听器失败: ${e.localizedMessage}")
             }

@@ -32,7 +32,7 @@ object CallAudioEngine {
     private var ns: NoiseSuppressor? = null
     private var agc: AutomaticGainControl? = null
 
-    private var isStreaming = false
+    @Volatile private var isStreaming = false
     private var recordThread: Thread? = null
     private var playThread: Thread? = null
 
@@ -568,8 +568,15 @@ object CallAudioEngine {
         stopLocalRecording()
 
         recordThread?.interrupt()
+        try {
+            recordThread?.join(500)
+        } catch (e: Exception) {}
         recordThread = null
+
         playThread?.interrupt()
+        try {
+            playThread?.join(500)
+        } catch (e: Exception) {}
         playThread = null
 
         try {

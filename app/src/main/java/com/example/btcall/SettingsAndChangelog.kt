@@ -16,6 +16,24 @@ data class ChangelogRecord(
 object ChangelogRepository {
     val records = listOf(
         ChangelogRecord(
+            version = "v01.09",
+            versionCode = 109,
+            date = "2026-08-20",
+            title = "音频采集与播放引擎线程安全加固",
+            features = listOf(
+                "将 CallAudioEngine 的 isStreaming 标志添加 @Volatile 内存可见性修饰，保证主线程控制状态变更实时穿透至音频工作线程",
+                "在 stop() 音频释放流程中引入工作线程优雅等待（recordThread?.join(500) / playThread?.join(500)），杜绝资源释放与异步读写竞态"
+            ),
+            bugFixes = listOf(
+                "修复挂断通话瞬间因工作线程仍处于 AudioRecord/AudioTrack 读写循环中导致的底层 Native 偶发空指针/释放崩溃",
+                "修复多核 CPU 架构下因 CPU 缓存未及时同步 isStreaming 变更导致录音/播放循环延迟退出的问题"
+            ),
+            optimizations = listOf(
+                "完善音频生命周期停止顺序，保障硬件音频效果器（AEC/NS/AGC）与底层 PCM 数据流安全有序释放",
+                "自动同步升级系统版本代码至 109 (v01.09)"
+            )
+        ),
+        ChangelogRecord(
             version = "v01.08",
             versionCode = 108,
             date = "2026-08-20",

@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.btcall.xkpzrl"
     minSdk = 24
     targetSdk = 36
-    versionCode = 108
-    versionName = "v01.08"
+    versionCode = 109
+    versionName = "v01.09"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

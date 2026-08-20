@@ -35,6 +35,15 @@ data class PeerDevice(
     val isOnline: Boolean
 )
 
+data class ScannedDevice(
+    val device: BluetoothDevice,
+    val name: String,
+    val address: String,
+    val rssi: Int,
+    val isPhone: Boolean,
+    val isBonded: Boolean
+)
+
 data class SignalPacket(
     val timestamp: String,
     val type: String,
@@ -162,6 +171,22 @@ class BluetoothCallEngine(private val context: Context) {
     val peerDevices = mutableStateListOf<PeerDevice>()
     val signalLogs = mutableStateListOf<SignalPacket>()
     val recordingsList = mutableStateListOf<RecordingInfo>()
+    val scannedDevices = mutableStateListOf<ScannedDevice>()
+
+    // Bluetooth Scanning & RSSI Filter States
+    private val _isScanning = mutableStateOf(false)
+    val isScanning: State<Boolean> = _isScanning
+
+    private val _rssiThreshold = mutableStateOf(-50)
+    val rssiThreshold: State<Int> = _rssiThreshold
+
+    private val _filterOnlyPhone = mutableStateOf(true)
+    val filterOnlyPhone: State<Boolean> = _filterOnlyPhone
+
+    private val _filterOnlyHighSignal = mutableStateOf(true)
+    val filterOnlyHighSignal: State<Boolean> = _filterOnlyHighSignal
+
+    private var discoveryReceiver: android.content.BroadcastReceiver? = null
 
     // Last completed recording info (shown on call overlay screen)
     private val _lastRecordingInfo = mutableStateOf<RecordingInfo?>(null)
@@ -204,6 +229,9 @@ class BluetoothCallEngine(private val context: Context) {
         // Load simulation mode preference (defaults to false)
         val prefs = context.getSharedPreferences("176_prefs", Context.MODE_PRIVATE)
         _simulationMode.value = prefs.getBoolean("simulation_mode", false)
+        _rssiThreshold.value = prefs.getInt("rssi_threshold", -50)
+        _filterOnlyPhone.value = prefs.getBoolean("filter_only_phone", true)
+        _filterOnlyHighSignal.value = prefs.getBoolean("filter_only_high_signal", true)
         
         localDeviceId = getOrGenerateDeviceId()
         addSystemLog("INFO", "IDENTITY", "本地唯一设备标识初始化成功: $localDeviceId")
@@ -221,6 +249,160 @@ class BluetoothCallEngine(private val context: Context) {
         if (!_simulationMode.value) {
             startListening()
         }
+    }
+
+    fun setRssiThreshold(value: Int) {
+        _rssiThreshold.value = value
+        val prefs = context.getSharedPreferences("176_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putInt("rssi_threshold", value).apply()
+        addSystemLog("SETTINGS", "RSSI", "更新高信号强度过滤阈值: ${value}dBm")
+    }
+
+    fun setFilterOnlyPhone(value: Boolean) {
+        _filterOnlyPhone.value = value
+        val prefs = context.getSharedPreferences("176_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("filter_only_phone", value).apply()
+    }
+
+    fun setFilterOnlyHighSignal(value: Boolean) {
+        _filterOnlyHighSignal.value = value
+        val prefs = context.getSharedPreferences("176_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("filter_only_high_signal", value).apply()
+    }
+
+    @Suppress("MissingPermission")
+    fun startScanning(
+        onlyPhone: Boolean = _filterOnlyPhone.value,
+        onlyHighSignal: Boolean = _filterOnlyHighSignal.value
+    ) {
+        _filterOnlyPhone.value = onlyPhone
+        _filterOnlyHighSignal.value = onlyHighSignal
+        val prefs = context.getSharedPreferences("176_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("filter_only_phone", onlyPhone)
+            .putBoolean("filter_only_high_signal", onlyHighSignal)
+            .apply()
+
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
+            Toast.makeText(context, "蓝牙未开启或设备不支持", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val hasScanPerm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (!hasScanPerm) {
+            Toast.makeText(context, "缺少蓝牙扫描/定位权限", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            if (bluetoothAdapter.isDiscovering) {
+                bluetoothAdapter.cancelDiscovery()
+            }
+        } catch (e: Exception) {}
+
+        scannedDevices.clear()
+        _isScanning.value = true
+        addSystemLog("SCAN", "START", "发起扫描: 仅手机=$onlyPhone, 仅高信号=$onlyHighSignal (阈值 ${_rssiThreshold.value}dBm)")
+
+        if (discoveryReceiver == null) {
+            discoveryReceiver = object : android.content.BroadcastReceiver() {
+                @Suppress("MissingPermission")
+                override fun onReceive(c: Context?, intent: android.content.Intent?) {
+                    val action = intent?.action ?: return
+                    when (action) {
+                        BluetoothDevice.ACTION_FOUND -> {
+                            val device = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                            } ?: return
+
+                            val rawRssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
+                            val rssi = if (rawRssi == Short.MIN_VALUE.toInt()) -100 else rawRssi
+
+                            val btClass: android.bluetooth.BluetoothClass? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS, android.bluetooth.BluetoothClass::class.java)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                intent.getParcelableExtra(BluetoothDevice.EXTRA_CLASS)
+                            } ?: try { device.bluetoothClass } catch (e: Exception) { null }
+
+                            val isPhone = btClass?.majorDeviceClass == android.bluetooth.BluetoothClass.Device.Major.PHONE
+                            val name = try { device.name ?: "" } catch (e: Exception) { "" }
+                            val address = device.address ?: ""
+                            val isBonded = device.bondState == BluetoothDevice.BOND_BONDED
+
+                            if (_filterOnlyPhone.value && !isPhone) {
+                                return
+                            }
+                            if (_filterOnlyHighSignal.value && rssi < _rssiThreshold.value) {
+                                return
+                            }
+
+                            val item = ScannedDevice(
+                                device = device,
+                                name = if (name.isNotBlank()) name else "附近蓝牙设备",
+                                address = address,
+                                rssi = rssi,
+                                isPhone = isPhone,
+                                isBonded = isBonded
+                            )
+
+                            val existingIdx = scannedDevices.indexOfFirst { it.address == address }
+                            if (existingIdx >= 0) {
+                                scannedDevices[existingIdx] = item
+                            } else {
+                                scannedDevices.add(item)
+                            }
+                            addSystemLog("SCAN", "FOUND", "扫描发现: ${item.name} (${item.address}) RSSI: ${item.rssi}dBm 手机类型: $isPhone")
+                        }
+                        BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                            _isScanning.value = false
+                            addSystemLog("SCAN", "FINISH", "扫描结束，找到 ${scannedDevices.size} 个匹配设备")
+                        }
+                    }
+                }
+            }
+            val filter = android.content.IntentFilter().apply {
+                addAction(BluetoothDevice.ACTION_FOUND)
+                addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+                addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
+            }
+            try {
+                context.registerReceiver(discoveryReceiver, filter)
+            } catch (e: Exception) {
+                addSystemLog("ERROR", "SCAN_REG", "注册扫描监听器失败: ${e.localizedMessage}")
+            }
+        }
+
+        try {
+            val started = bluetoothAdapter.startDiscovery()
+            if (!started) {
+                _isScanning.value = false
+                addSystemLog("WARN", "SCAN", "startDiscovery 返回 false")
+            }
+        } catch (e: Exception) {
+            _isScanning.value = false
+            addSystemLog("ERROR", "SCAN", "启动扫描异常: ${e.localizedMessage}")
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun stopScanning() {
+        try {
+            val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+            if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering) {
+                bluetoothAdapter.cancelDiscovery()
+            }
+        } catch (e: Exception) {}
+        _isScanning.value = false
+        addSystemLog("SCAN", "STOP", "手动终止扫描")
     }
 
     fun addSystemLogDirect(module: String, action: String, detail: String) {
@@ -1265,6 +1447,54 @@ class BluetoothCallEngine(private val context: Context) {
             Toast.makeText(context, "已成功删除录音文件", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(context, "删除录音失败: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun deleteRecordingsBatch(selectedIds: Set<String>) {
+        try {
+            stopPlaying()
+            val toDelete = recordingsList.filter { selectedIds.contains(it.id) }
+            if (toDelete.isEmpty()) return
+            toDelete.forEach { rec ->
+                val file = File(rec.filePath)
+                if (file.exists()) {
+                    file.delete()
+                }
+                recordingsList.remove(rec)
+            }
+            saveRecordingsToPrefs()
+            addSystemLog("SYSTEM", "DELETE_BATCH", "已批量删除 ${toDelete.size} 个录音文件")
+            Toast.makeText(context, "已成功删除 ${toDelete.size} 个录音文件", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "批量删除失败: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun shareRecordingsBatch(selectedIds: Set<String>) {
+        try {
+            val selected = recordingsList.filter { selectedIds.contains(it.id) }
+            val validFiles = selected.map { File(it.filePath) }.filter { it.exists() }
+            if (validFiles.isEmpty()) {
+                Toast.makeText(context, "未找到有效的录音文件", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val authority = "${context.packageName}.fileprovider"
+            val uris = ArrayList<android.net.Uri>()
+            validFiles.forEach { file ->
+                uris.add(androidx.core.content.FileProvider.getUriForFile(context, authority, file))
+            }
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "audio/wav"
+                putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, uris)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = android.content.Intent.createChooser(intent, "批量分享通话录音文件")
+            chooser.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+            addSystemLog("SYSTEM", "SHARE_BATCH", "已拉起批量分享 (${uris.size} 个文件)")
+        } catch (e: Exception) {
+            Toast.makeText(context, "批量分享失败: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            addSystemLog("ERROR", "SHARE_BATCH", "分享失败: ${e.localizedMessage}")
         }
     }
 

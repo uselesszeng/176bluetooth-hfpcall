@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -248,68 +249,27 @@ fun BluetoothAppMainScreen(
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // App Top Bar
+            // App Top Bar (Simplified: Left-aligned Icon + Title)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Bluetooth,
-                        contentDescription = "Bluetooth Logo",
-                        tint = Color(0xFF38BDF8),
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontFamily = FontFamily.SansSerif
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        color = Color(0xFF0EA5E9).copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = "v01.04",
-                            color = Color(0xFF38BDF8),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                // Interactive Simulator Status badge
-                Surface(
-                    color = Color(0xFF10B981).copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(Color(0xFF10B981), CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(id = R.string.demo_ready),
-                            color = Color(0xFF34D399),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.Bluetooth,
+                    contentDescription = "Bluetooth Logo",
+                    tint = Color(0xFF38BDF8),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = stringResource(id = R.string.app_name),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontFamily = FontFamily.SansSerif
+                )
             }
 
             // Tabs Header
@@ -378,6 +338,10 @@ fun BluetoothAppMainScreen(
 fun CallingTab(engine: BluetoothCallEngine, hasPermissions: State<Boolean>) {
     val devices = engine.peerDevices
     val bookmarkedAddresses by engine.bookmarkedAddresses
+    val isScanning by engine.isScanning
+    val filterOnlyPhone by engine.filterOnlyPhone
+    val filterOnlyHighSignal by engine.filterOnlyHighSignal
+    val scannedDevices = engine.scannedDevices
     
     val sortedDevices = remember(devices, bookmarkedAddresses) {
         devices.toList().sortedWith(
@@ -439,6 +403,223 @@ fun CallingTab(engine: BluetoothCallEngine, hasPermissions: State<Boolean>) {
                         )
                     }
                 }
+            }
+        }
+
+        // Bluetooth Scan & Filter Section (Module 1)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    // Header Row with Title and Scan Trigger Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.BluetoothSearching,
+                                contentDescription = "Scan",
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(id = R.string.scan_nearby_devices),
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (isScanning) {
+                                    engine.stopScanning()
+                                } else {
+                                    engine.startScanning(filterOnlyPhone, filterOnlyHighSignal)
+                                }
+                            },
+                            enabled = hasPermissions.value,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isScanning) Color(0xFFEF4444) else Color(0xFF0284C7)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            if (isScanning) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(id = R.string.stop_scan),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(id = R.string.start_scan),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Filters Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Switch 1: Only Phone
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable {
+                                val next = !filterOnlyPhone
+                                engine.setFilterOnlyPhone(next)
+                                if (isScanning) {
+                                    engine.startScanning(next, filterOnlyHighSignal)
+                                }
+                            }
+                        ) {
+                            Switch(
+                                checked = filterOnlyPhone,
+                                onCheckedChange = {
+                                    engine.setFilterOnlyPhone(it)
+                                    if (isScanning) {
+                                        engine.startScanning(it, filterOnlyHighSignal)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color(0xFF38BDF8),
+                                    checkedTrackColor = Color(0xFF0EA5E9).copy(alpha = 0.5f),
+                                    uncheckedThumbColor = Color(0xFF94A3B8),
+                                    uncheckedTrackColor = Color(0xFF334155)
+                                ),
+                                modifier = Modifier.scale(0.8f)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = stringResource(id = R.string.filter_only_phone),
+                                color = if (filterOnlyPhone) Color.White else Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                fontWeight = if (filterOnlyPhone) FontWeight.Medium else FontWeight.Normal
+                            )
+                        }
+
+                        // Switch 2: Only High Signal
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable {
+                                val next = !filterOnlyHighSignal
+                                engine.setFilterOnlyHighSignal(next)
+                                if (isScanning) {
+                                    engine.startScanning(filterOnlyPhone, next)
+                                }
+                            }
+                        ) {
+                            Switch(
+                                checked = filterOnlyHighSignal,
+                                onCheckedChange = {
+                                    engine.setFilterOnlyHighSignal(it)
+                                    if (isScanning) {
+                                        engine.startScanning(filterOnlyPhone, it)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color(0xFF38BDF8),
+                                    checkedTrackColor = Color(0xFF0EA5E9).copy(alpha = 0.5f),
+                                    uncheckedThumbColor = Color(0xFF94A3B8),
+                                    uncheckedTrackColor = Color(0xFF334155)
+                                ),
+                                modifier = Modifier.scale(0.8f)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = stringResource(id = R.string.filter_only_high_signal),
+                                color = if (filterOnlyHighSignal) Color.White else Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                fontWeight = if (filterOnlyHighSignal) FontWeight.Medium else FontWeight.Normal
+                            )
+                        }
+                    }
+
+                    if (isScanning) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                color = Color(0xFF38BDF8),
+                                strokeWidth = 1.5.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(id = R.string.scanning_indicator),
+                                color = Color(0xFF38BDF8),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Scanned Devices Section (if scanned devices exist or active scanning)
+        if (scannedDevices.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.scanned_results_header) + " (${scannedDevices.size})",
+                        color = Color(0xFF38BDF8),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            items(scannedDevices) { scannedItem ->
+                ScannedDeviceCard(
+                    device = scannedItem,
+                    engine = engine,
+                    hasPermissions = hasPermissions
+                )
             }
         }
 
@@ -524,6 +705,148 @@ fun CallingTab(engine: BluetoothCallEngine, hasPermissions: State<Boolean>) {
                 }
             }
         )
+    }
+}
+
+@Composable
+fun ScannedDeviceCard(
+    device: ScannedDevice,
+    engine: BluetoothCallEngine,
+    hasPermissions: State<Boolean>
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFF334155)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("scanned_device_${device.address}")
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            if (device.isPhone) Color(0xFF0EA5E9).copy(alpha = 0.2f) else Color(0xFF334155),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (device.isPhone) Icons.Default.PhoneAndroid else Icons.Default.Bluetooth,
+                        contentDescription = if (device.isPhone) "Phone" else "Bluetooth Device",
+                        tint = if (device.isPhone) Color(0xFF38BDF8) else Color(0xFF94A3B8),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = device.name.ifBlank { stringResource(id = R.string.unknown_device) },
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (device.isPhone) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = Color(0xFF0EA5E9).copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "PHONE",
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = device.address,
+                        color = Color(0xFF64748B),
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    val rssiColor = when {
+                        device.rssi >= -60 -> Color(0xFF10B981)
+                        device.rssi >= -80 -> Color(0xFFF59E0B)
+                        else -> Color(0xFFEF4444)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.SignalCellularAlt,
+                            contentDescription = "Signal",
+                            tint = rssiColor,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${device.rssi} dBm",
+                            color = rssiColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (device.isBonded) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "• 已配对",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Button(
+                onClick = {
+                    if (!device.isBonded) {
+                        engine.initiatePairing(device.address)
+                    }
+                    engine.startOutgoingCall(PeerDevice(device.address, device.name, device.isBonded, true))
+                },
+                enabled = hasPermissions.value,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (device.isBonded) Color(0xFF0284C7) else Color(0xFF0D9488)
+                ),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Call,
+                    contentDescription = "Call",
+                    tint = Color.White,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (device.isBonded) stringResource(id = R.string.call_btn) else stringResource(id = R.string.pair_and_call),
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
@@ -870,8 +1193,14 @@ fun SettingsTab(engine: BluetoothCallEngine) {
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    val latestRecord = changelogs.firstOrNull()
+                    val versionDisplayText = if (latestRecord != null) {
+                        "版本代码: ${latestRecord.versionCode} | 版本名称: ${latestRecord.version}"
+                    } else {
+                        stringResource(id = R.string.version_label)
+                    }
                     Text(
-                        text = stringResource(id = R.string.version_label),
+                        text = versionDisplayText,
                         color = Color(0xFF38BDF8),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -883,6 +1212,95 @@ fun SettingsTab(engine: BluetoothCallEngine) {
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+        }
+
+        // High Signal RSSI Threshold Setting (Module 1)
+        item {
+            val rssiThreshold by engine.rssiThreshold
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = stringResource(id = R.string.rssi_threshold_title),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = stringResource(id = R.string.rssi_threshold_desc),
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+
+                        Surface(
+                            color = Color(0xFF0EA5E9).copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFF0EA5E9).copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = "$rssiThreshold dBm",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "-100 dBm",
+                            color = Color(0xFF64748B),
+                            fontSize = 11.sp
+                        )
+
+                        Slider(
+                            value = rssiThreshold.toFloat(),
+                            onValueChange = { value ->
+                                engine.setRssiThreshold(value.toInt())
+                            },
+                            valueRange = -100f..-30f,
+                            steps = 69,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF38BDF8),
+                                activeTrackColor = Color(0xFF0EA5E9),
+                                inactiveTrackColor = Color(0xFF334155)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        )
+
+                        Text(
+                            text = "-30 dBm",
+                            color = Color(0xFF64748B),
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
         }
@@ -1997,11 +2415,16 @@ fun StaticRecordingWaveform(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecordingsTab(engine: BluetoothCallEngine) {
     val recordings = engine.recordingsList
     val playingId by engine.playingRecordingId
     val context = LocalContext.current
+    
+    var isSelectionMode by remember { mutableStateOf(false) }
+    val selectedRecordingIds = remember { mutableStateListOf<String>() }
+    var showBatchDeleteDialog by remember { mutableStateOf(false) }
     
     if (recordings.isEmpty()) {
         Column(
@@ -2037,13 +2460,185 @@ fun RecordingsTab(engine: BluetoothCallEngine) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = stringResource(id = R.string.tab_recordings) + " (${recordings.size})",
-                color = Color(0xFF94A3B8),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            // Header Bar & Multi-Select Operations
+            if (!isSelectionMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.tab_recordings) + " (${recordings.size})",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Button(
+                        onClick = {
+                            isSelectionMode = true
+                            selectedRecordingIds.clear()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                        border = BorderStroke(1.dp, Color(0xFF334155)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(30.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Checklist,
+                            contentDescription = "Multi-select",
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(id = R.string.batch_select),
+                            color = Color(0xFF38BDF8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else {
+                // Batch Action Floating Control Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.batch_selected_count, selectedRecordingIds.size),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val isAllSelected = selectedRecordingIds.size == recordings.size
+                                TextButton(
+                                    onClick = {
+                                        if (isAllSelected) {
+                                            selectedRecordingIds.clear()
+                                        } else {
+                                            selectedRecordingIds.clear()
+                                            selectedRecordingIds.addAll(recordings.map { it.id })
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (isAllSelected) stringResource(id = R.string.deselect_all) else stringResource(id = R.string.select_all),
+                                        color = Color(0xFF38BDF8),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                TextButton(
+                                    onClick = {
+                                        selectedRecordingIds.clear()
+                                        isSelectionMode = false
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(id = R.string.cancel),
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    if (selectedRecordingIds.isEmpty()) {
+                                        android.widget.Toast.makeText(context, context.getString(R.string.batch_no_selection), android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        engine.shareRecordingsBatch(selectedRecordingIds.toSet())
+                                    }
+                                },
+                                enabled = selectedRecordingIds.isNotEmpty(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF0284C7),
+                                    disabledContainerColor = Color(0xFF334155)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.weight(1f).height(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Batch Share",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(id = R.string.batch_share),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (selectedRecordingIds.isEmpty()) {
+                                        android.widget.Toast.makeText(context, context.getString(R.string.batch_no_selection), android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showBatchDeleteDialog = true
+                                    }
+                                },
+                                enabled = selectedRecordingIds.isNotEmpty(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFEF4444),
+                                    disabledContainerColor = Color(0xFF334155)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.weight(1f).height(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Batch Delete",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(id = R.string.batch_delete),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -2051,14 +2646,38 @@ fun RecordingsTab(engine: BluetoothCallEngine) {
             ) {
                 items(recordings, key = { it.id }) { rec ->
                     val isPlaying = playingId == rec.id
+                    val isSelected = selectedRecordingIds.contains(rec.id)
                     
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) Color(0xFF0F2942) else Color(0xFF1E293B)
+                        ),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, if (isPlaying) Color(0xFF38BDF8) else Color(0xFF334155)),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) Color(0xFF38BDF8) else if (isPlaying) Color(0xFF0EA5E9) else Color(0xFF334155)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("recording_item_${rec.id}")
+                            .combinedClickable(
+                                onClick = {
+                                    if (isSelectionMode) {
+                                        if (isSelected) {
+                                            selectedRecordingIds.remove(rec.id)
+                                        } else {
+                                            selectedRecordingIds.add(rec.id)
+                                        }
+                                    }
+                                },
+                                onLongClick = {
+                                    if (!isSelectionMode) {
+                                        isSelectionMode = true
+                                        selectedRecordingIds.clear()
+                                        selectedRecordingIds.add(rec.id)
+                                    }
+                                }
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -2070,22 +2689,46 @@ fun RecordingsTab(engine: BluetoothCallEngine) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = rec.peerName,
-                                        color = Color.White,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = rec.peerAddress,
-                                        color = Color(0xFF64748B),
-                                        fontSize = 12.sp,
-                                        fontFamily = FontFamily.Monospace
-                                    )
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (isSelectionMode) {
+                                        Checkbox(
+                                            checked = isSelected,
+                                            onCheckedChange = { checked ->
+                                                if (checked) {
+                                                    if (!selectedRecordingIds.contains(rec.id)) selectedRecordingIds.add(rec.id)
+                                                } else {
+                                                    selectedRecordingIds.remove(rec.id)
+                                                }
+                                            },
+                                            colors = CheckboxDefaults.colors(
+                                                checkedColor = Color(0xFF38BDF8),
+                                                uncheckedColor = Color(0xFF64748B),
+                                                checkmarkColor = Color(0xFF0F172A)
+                                            ),
+                                            modifier = Modifier.padding(end = 8.dp)
+                                        )
+                                    }
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = rec.peerName,
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = rec.peerAddress,
+                                            color = Color(0xFF64748B),
+                                            fontSize = 12.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
                                 }
                                 
                                 val formattedTime = remember(rec.callTime) {
@@ -2323,6 +2966,54 @@ fun RecordingsTab(engine: BluetoothCallEngine) {
                 }
             }
         }
+    }
+
+    if (showBatchDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatchDeleteDialog = false },
+            containerColor = Color(0xFF1E293B),
+            title = {
+                Text(
+                    text = stringResource(id = R.string.batch_delete_dialog_title),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.batch_delete_dialog_desc, selectedRecordingIds.size),
+                    color = Color(0xFF94A3B8),
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val idsToDelete = selectedRecordingIds.toSet()
+                        engine.deleteRecordingsBatch(idsToDelete)
+                        selectedRecordingIds.clear()
+                        isSelectionMode = false
+                        showBatchDeleteDialog = false
+                    }
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.confirm),
+                        color = Color(0xFFEF4444),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showBatchDeleteDialog = false }
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.cancel),
+                        color = Color(0xFF38BDF8)
+                    )
+                }
+            }
+        )
     }
 }
 

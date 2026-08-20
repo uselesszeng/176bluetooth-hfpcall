@@ -76,4 +76,29 @@
     <string name="duration_prefix">Duration: </string>
     <string name="simulation_mode_label">Simulation Sandbox Mode</string>
     <string name="simulation_mode_desc">When enabled, call flow is simulated locally for single-device testing. When disabled, the app uses real physical Bluetooth RFCOMM channels for outgoing calls and peer-to-peer handshakes.</string>
+    <!-- Bluetooth Scanning & RSSI Filter -->
+    <string name="scan_nearby_devices">Scan Nearby Devices</string>
+    <string name="filter_only_phone">Only Phone</string>
+    <string name="filter_only_high_signal">Only High Signal</string>
+    <string name="start_scan">Start Scan</string>
+    <string name="stop_scan">Stop Scan</string>
+    <string name="scanning_indicator">Scanning for nearby Bluetooth devices...</string>
+    <string name="no_scanned_devices">No matching nearby Bluetooth devices found</string>
+    <string name="rssi_threshold_title">High-Intensity Signal Threshold (RSSI)</string>
+    <string name="rssi_threshold_desc">Configure minimum signal strength dBm threshold for high signal filter (Default: -50 dBm)</string>
+    <string name="pair_and_call">Pair &amp; Call</string>
+    <string name="scanned_results_header">Scanned Nearby Devices</string>
+
+    <!-- Batch Recordings Management -->
+    <string name="batch_select">Multi-Select</string>
+    <string name="batch_selected_count">Selected %1$d items</string>
+    <string name="select_all">Select All</string>
+    <string name="deselect_all">Deselect All</string>
+    <string name="batch_share">Batch Share</string>
+    <string name="batch_delete">Batch Delete</string>
+    <string name="batch_delete_dialog_title">Batch Delete Recordings</string>
+    <string name="batch_delete_dialog_desc">Are you sure you want to permanently delete the %1$d selected recording files? This action cannot be undone.</string>
+    <string name="batch_share_dialog_title">Batch Share Recordings</string>
+    <string name="batch_no_selection">No recordings selected</string>
+    <string name="confirm">Confirm</string>
 </resources>

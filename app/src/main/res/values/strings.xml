@@ -76,4 +76,29 @@
     <string name="duration_prefix">时长: </string>
     <string name="simulation_mode_label">模拟仿真模式</string>
     <string name="simulation_mode_desc">开启后将采用本地虚拟通话信令流转（单机测试适用）；关闭后强制优先使用真实蓝牙物理 RFCOMM 信道进行呼叫和握手（双机对打适用）。</string>
+    <!-- Bluetooth Scanning & RSSI Filter -->
+    <string name="scan_nearby_devices">扫描附近设备</string>
+    <string name="filter_only_phone">仅限手机 (Only Phone)</string>
+    <string name="filter_only_high_signal">仅限高信号 (Only High)</string>
+    <string name="start_scan">开始扫描</string>
+    <string name="stop_scan">停止扫描</string>
+    <string name="scanning_indicator">正在扫描附近蓝牙设备...</string>
+    <string name="no_scanned_devices">未发现符合过滤条件的附近蓝牙设备</string>
+    <string name="rssi_threshold_title">高强度信号阈值 (RSSI)</string>
+    <string name="rssi_threshold_desc">设置附近扫描时判定为高强度信号的门限分贝值（默认 -50 dBm）</string>
+    <string name="pair_and_call">配对 / 呼叫</string>
+    <string name="scanned_results_header">扫描到的附近设备</string>
+
+    <!-- Batch Recordings Management -->
+    <string name="batch_select">多选管理</string>
+    <string name="batch_selected_count">已选择 %1$d 项</string>
+    <string name="select_all">全选</string>
+    <string name="deselect_all">取消全选</string>
+    <string name="batch_share">批量分享</string>
+    <string name="batch_delete">批量删除</string>
+    <string name="batch_delete_dialog_title">批量删除录音</string>
+    <string name="batch_delete_dialog_desc">确定要永久删除选中的 %1$d 个录音文件吗？该操作不可撤销。</string>
+    <string name="batch_share_dialog_title">批量分享录音</string>
+    <string name="batch_no_selection">未选中任何录音</string>
+    <string name="confirm">确认</string>
 </resources>

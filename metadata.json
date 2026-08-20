@@ -1,0 +1,6 @@
+{
+  "name": "176蓝牙通话",
+  "description": "娘化Bluetooth图标的蓝牙免网语音通话应用，具备系统级来电接入、断网重连、保活与软件更新记录等特色功能。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

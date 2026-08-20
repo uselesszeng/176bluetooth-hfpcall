@@ -16,6 +16,24 @@ data class ChangelogRecord(
 object ChangelogRepository {
     val records = listOf(
         ChangelogRecord(
+            version = "v01.08",
+            versionCode = 108,
+            date = "2026-08-20",
+            title = "Android 12 以下版本蓝牙扫描权限及兼容性修复",
+            features = listOf(
+                "在 AndroidManifest.xml 中声明 ACCESS_FINE_LOCATION 与 ACCESS_COARSE_LOCATION 权限，满足低版本系统蓝牙发现的硬性权限要求",
+                "重构 MainActivity 动态权限请求引擎，针对 Android 12 (API 31) 以下系统动态请求 ACCESS_FINE_LOCATION 定位权限与 RECORD_AUDIO 录音权限"
+            ),
+            bugFixes = listOf(
+                "修复在 Android 11、10、9 等旧机型上搜索物理蓝牙设备时因缺少精确定位权限导致的扫描静默失败或列表为空的问题",
+                "确保 Legacy Bluetooth 权限与 Android 12+ 新蓝牙权限 (BLUETOOTH_SCAN, BLUETOOTH_CONNECT) 分级兼容"
+            ),
+            optimizations = listOf(
+                "优化权限检查与重新请求反馈流程，提升低版本机型首次启动的配对与连接成功率",
+                "自动同步升级版本代码至 108 (v01.08)"
+            )
+        ),
+        ChangelogRecord(
             version = "v01.07",
             versionCode = 107,
             date = "2026-08-20",

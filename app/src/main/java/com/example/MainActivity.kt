@@ -191,6 +191,8 @@ class MainActivity : ComponentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             list.add(android.Manifest.permission.BLUETOOTH_CONNECT)
             list.add(android.Manifest.permission.BLUETOOTH_SCAN)
+        } else {
+            list.add(android.Manifest.permission.ACCESS_FINE_LOCATION)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             list.add(android.Manifest.permission.POST_NOTIFICATIONS)

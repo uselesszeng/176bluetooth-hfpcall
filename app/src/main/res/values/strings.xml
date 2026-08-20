@@ -40,7 +40,7 @@
     <string name="need_perm_alert_desc">176蓝牙通话APP需要 [蓝牙扫描、连接、录音] 权限来检索物理配对设备并建立语音对讲。请点击下方按钮重新请求，或前往系统设置授权。</string>
     <string name="grant_now">立即授权</string>
     <string name="app_subtitle">安全、免网、高质量的点对点语音交互终端</string>
-    <string name="version_label">版本代码: 107 | 版本名称: v01.07</string>
+    <string name="version_label">版本代码: 108 | 版本名称: v01.08</string>
     <string name="menu_copy_name">复制设备名</string>
     <string name="menu_copy_mac">复制MAC地址</string>
     <string name="menu_share">分享设备</string>

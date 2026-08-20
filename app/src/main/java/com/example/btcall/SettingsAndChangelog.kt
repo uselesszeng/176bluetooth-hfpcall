@@ -16,6 +16,23 @@ data class ChangelogRecord(
 object ChangelogRepository {
     val records = listOf(
         ChangelogRecord(
+            version = "v01.10",
+            versionCode = 110,
+            date = "2026-08-20",
+            title = "悬浮窗 ComposeView 内存泄漏与状态监听释放修复",
+            features = listOf(
+                "在 FloatingCallService 的 onDestroy() 销毁流程中显式调用 floatingView?.disposeComposition()",
+                "彻底切断 ComposeView 内部协程副作用、LaunchedEffect 及 State 监听器，确保悬浮窗关闭时内存与资源完全回收"
+            ),
+            bugFixes = listOf(
+                "修复多次开启/关闭悬浮窗后，ComposeView 内部对 Service 和 ViewModelStore 的隐式引用导致内存泄漏的问题"
+            ),
+            optimizations = listOf(
+                "优化悬浮窗 Service 销毁时与 WindowManager 的清理顺序，提高前后台切换与窗口复用的流畅度",
+                "自动同步升级系统版本代码至 110 (v01.10)"
+            )
+        ),
+        ChangelogRecord(
             version = "v01.09",
             versionCode = 109,
             date = "2026-08-20",

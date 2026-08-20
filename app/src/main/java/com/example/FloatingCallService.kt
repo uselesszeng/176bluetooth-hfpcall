@@ -195,8 +195,9 @@ class FloatingCallService : Service(), LifecycleOwner, ViewModelStoreOwner, Save
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         floatingView?.let { view ->
             try {
+                view.disposeComposition()
                 windowManager?.removeView(view)
-                BluetoothCallEngine.instance?.addSystemLogDirect("FLOATING", "HIDE", "悬浮窗隐藏成功")
+                BluetoothCallEngine.instance?.addSystemLogDirect("FLOATING", "HIDE", "悬浮窗释放并隐藏成功")
             } catch (e: Exception) {}
         }
         floatingView = null

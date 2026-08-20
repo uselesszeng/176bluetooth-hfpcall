@@ -58,7 +58,7 @@
             android:name="com.example.FloatingCallService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="microphone|phoneCall" />
+            android:foregroundServiceType="phoneCall|microphone" />
     </application>
 
 </manifest>

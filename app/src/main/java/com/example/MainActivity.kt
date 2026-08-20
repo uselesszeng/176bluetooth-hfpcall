@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -154,7 +155,12 @@ class MainActivity : ComponentActivity() {
 
     private fun startFloatingCallOverlay() {
         val engine = callingEngine
-        if (engine.callStateValue != CallState.CONNECTED && engine.callStateValue != CallState.IDLE && engine.callStateValue != CallState.FAILED) {
+        if (engine.callStateValue == CallState.ACTIVE || 
+            engine.callStateValue == CallState.OUTGOING_INIT || 
+            engine.callStateValue == CallState.OUTGOING_RINGING || 
+            engine.callStateValue == CallState.INCOMING_RINGING || 
+            engine.callStateValue == CallState.ANSWERING || 
+            engine.callStateValue == CallState.RECONNECTING) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M && android.provider.Settings.canDrawOverlays(this)) {
                 val intent = android.content.Intent(this, FloatingCallService::class.java)
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -208,7 +214,7 @@ fun BluetoothAppMainScreen(
     onRequestPermissions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val currentCallState by engine.callState
 
     // Show permission warning alert dialog if permissions are not granted

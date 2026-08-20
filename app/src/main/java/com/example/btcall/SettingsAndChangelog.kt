@@ -16,6 +16,24 @@ data class ChangelogRecord(
 object ChangelogRepository {
     val records = listOf(
         ChangelogRecord(
+            version = "v01.11",
+            versionCode = 111,
+            date = "2026-08-20",
+            title = "切后台通话保活与语言切换状态持久化修复",
+            features = listOf(
+                "将主界面 Tab 切换状态升级为 rememberSaveable 状态容器，支持 Activity 重建（recreate）时自动恢复当前 Tab 停留位置",
+                "在 FloatingCallService 中绑定常驻低打扰前台通知与 phoneCall|microphone 双前台服务类型"
+            ),
+            bugFixes = listOf(
+                "修复在设置页面切换中英文语言触发 Activity 重建时闪回默认拨号主页的问题，完美保持在当前设置选项卡",
+                "修复退到后台或息屏通话时因系统后台限制杀死服务引发的通话中断与崩溃，在 onStop 中使用 ContextCompat.startForegroundService 启动保活"
+            ),
+            optimizations = listOf(
+                "优化 AndroidManifest 中 Service 的 foregroundServiceType 声明为标准 phoneCall|microphone",
+                "自动同步升级系统版本代码至 111 (v01.11)"
+            )
+        ),
+        ChangelogRecord(
             version = "v01.10",
             versionCode = 110,
             date = "2026-08-20",
